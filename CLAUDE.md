@@ -76,7 +76,17 @@ that many GATE-DBMS-PYQ/placement-style MCQs (`practice.py`, same client wiring 
 `explainer.py`), falling back to a hardcoded per-difficulty question bank (never a bare
 502, unlike the old `/quiz/generate`) if Gemini fails; one question at a time with a
 two-attempt retry flow (a first wrong answer doesn't count yet, a second does) and a score
-screen with a first-try/retry/incorrect breakdown.
+screen with a first-try/retry/incorrect breakdown · Competitive Exam (`/practice/
+competitive-exam`, its own top-level nav item — originally shipped as "Hard Practice"
+reached via an in-page toggle on the AI Practice page, then given its own top-nav entry
+and renamed, then rebuilt from a quiz flow into a static list; `/practice/hard` now
+redirects) — a fixed, hand-written 15-question PL/SQL bank (transactions/cursors/
+exception-handling/triggers, `frontend/src/competitiveExamQuestions.js`) that never goes
+through Gemini, rendered as a static expandable reference list, not a quiz: all 15
+questions visible at once, each collapsed to just its prompt (code snippet, if any, stays
+visible even collapsed), independently expandable (multiple at once, no forced
+single-open accordion) to reveal its options with the correct one pre-marked plus the
+explanation — no click-to-answer, no scoring, no setup/score screens.
 
 ### Backend file map (`backend/app/`)
 `tokenizer.py` text→tokens · `parser.py` tokens→AST · `interpreter.py` AST→`DebugStep`s
@@ -102,8 +112,12 @@ for Download · `compareTraces.js` pure trace diff · `samples.js` sample librar
 `pages/SqlConsolePage.jsx` the merged Debugger + SQL Console (`/sql-console`, one editor,
 one Run button — see `docs/features.md`; formerly two separate pages/files,
 `DebuggerPage.jsx` and a standalone `SqlConsolePage.jsx`) · `pages/ComparePage.jsx`,
-`PracticePage.jsx` (`/practice`, replaced `QuizPage.jsx`), `TestRunnerPage.jsx`,
-`HistoryPage.jsx`, `HelpPage.jsx`, `LearnPage.jsx` — one per route ·
+`PracticePage.jsx` (`/practice`, replaced `QuizPage.jsx`),
+`CompetitiveExamPage.jsx` (`/practice/competitive-exam`, fixed question bank — see
+`competitiveExamQuestions.js` below; formerly `HardPracticePage.jsx` at `/practice/hard`),
+`TestRunnerPage.jsx`, `HistoryPage.jsx`, `HelpPage.jsx`, `LearnPage.jsx` — one per route ·
+`competitiveExamQuestions.js` the static, hand-written 15-question Competitive Exam bank
+(never Gemini-generated) ·
 `theoryContent.jsx`/`theoryTopics.js` the former standalone Theory tab's per-construct
 write-ups, merged into `LearnPage.jsx`'s "Deep Dive" panel (no more separate `/theory`
 route).

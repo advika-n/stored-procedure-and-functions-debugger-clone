@@ -5,27 +5,30 @@ of every session, not appended to — it's a status board, not a diary. Session-
 history lives in `git log` and `PROMPT_LOG.md`; stable project facts live in `CLAUDE.md`
 (`docs/features.md`/`docs/schema.md` for design detail).
 
-**Last updated**: 2026-09-18, end of an "AI Practice — Competitive Exam Practice
-Generator" session (`PROMPT_LOG.md` #31) — removed the standalone Quiz page entirely
-(route, component, nav entry, `backend/app/quiz.py`, `POST /quiz/generate`,
-`frontend/src/lastProcedure.js`) and replaced it with a new "AI Practice" tab (`/practice`)
-and `backend/app/practice.py`: a general-purpose, GATE-DBMS-PYQ/placement-style MCQ
-practice generator with a hardcoded fallback bank (unlike the old Quiz page, a Gemini
-failure never surfaces as an error) and a two-attempt retry flow per question. Predict
-Mode (in-debugger, `SqlConsolePage.jsx`) confirmed untouched throughout. Full rationale:
-`docs/features.md`'s "AI Practice" section. Backend: `practice.py` new (replaced
-`quiz.py`), suite **568 passing** (+16 net vs. 552, still 0 xfailed). Frontend:
-`PracticePage.jsx` new (replaced `QuizPage.jsx`), `App.css`/`Layout.jsx`/`App.jsx`/
-`vite.config.js`/`HelpPage.jsx` touched; `npm run lint`/`npm run build` both clean.
+**Last updated**: 2026-09-22, end of a "Learn page panel order" fix session
+(`PROMPT_LOG.md` #35) — swapped the Learn page's Concept Explanation and Video panels
+(new order: Concept Explanation → Video → Deep Dive → References; was Video → Concept
+Explanation → Deep Dive → References). Pure reorder, no content/styling changes, `git
+diff` scoped to exactly the two swapped JSX blocks in `LearnPage.jsx`. No backend
+involved.
+
+Immediately prior: a "Competitive Exam — accordion list, not a quiz flow" fix session
+(`PROMPT_LOG.md` #34) replaced that page's one-question-at-a-time quiz interaction with a
+static expandable reference list (all 15 questions visible at once, each independently
+expandable to reveal its options + explanation, no scoring). Third consecutive session on
+that one feature (#32 shipped it as a "Hard Practice" quiz behind an in-page toggle; #33
+gave it its own top-level nav entry and renamed it; #34 replaced the interaction model
+entirely) — see `PROMPT_LOG.md` #32–34 and `docs/features.md`'s "Competitive Exam"
+section for the full history. No backend changes in any of those three sessions either.
 
 ---
 
 ## Feature status
 
 **Mandatory (5/5 done)**: Day/Night Mode · Developed By (real photo + name + register
-number + Guided By) · Help tab (accurate for the merged page + AI Practice) · Learn tab
-(real embedded video + real MySQL/Oracle reference citations) · Download (PDF/DOCX/Text
-export).
+number + Guided By) · Help tab (accurate for the merged page + AI Practice + Competitive
+Exam) · Learn tab (real embedded video + real MySQL/Oracle reference citations) ·
+Download (PDF/DOCX/Text export).
 
 **Innovation (2/4 done, 2 dropped)**: SQL Anti-Pattern Advisor · Side-by-Side Run
 Comparison. **Variable Timeline — dropped** (#29; it had shipped and was removed, not
@@ -44,93 +47,53 @@ Debugger/SQL Console page + SQL passthrough statements · Comparison operators
 (`PROMPT_LOG.md` #27) · Hover-flyout sample rail + Live State/editor rebalance
 (`PROMPT_LOG.md` #28) · Sample-row overflow fix + centered Learn video (`PROMPT_LOG.md`
 #29) · Download Report: real diagram image, no false ERROR labels, no Intermediate
-Results (`PROMPT_LOG.md` #30) · **AI Practice** — replaces the standalone Quiz page with a
-general-purpose, competitive-exam-style MCQ practice tool (this session — see below).
+Results (`PROMPT_LOG.md` #30) · AI Practice — replaces the standalone Quiz page with a
+general-purpose, competitive-exam-style MCQ practice tool (`PROMPT_LOG.md` #31) ·
+**Competitive Exam** — a fixed, hand-written 15-question PL/SQL bank with its own
+top-level nav tab, rendered as a static expandable study-reference list (never goes
+through Gemini; `PROMPT_LOG.md` #32–34 — see above).
 
 ---
 
-## This session's work — AI Practice (replaces the standalone Quiz page)
+## This session's work — Learn page panel order
 
-Full prompt + rationale: `PROMPT_LOG.md` #31, `docs/features.md`'s "AI Practice (replaces
-the standalone Quiz page)" section.
+Full prompt + rationale: `PROMPT_LOG.md` #35.
 
-1. **Removed the standalone Quiz page entirely** — not hidden/deprecated. Deleted:
-   `backend/app/quiz.py`, `backend/app/tests/test_quiz.py`,
-   `backend/app/tests/test_quiz_endpoint.py`, `POST /quiz/generate` +
-   `QuizGenerateRequest` from `main.py`, `frontend/src/pages/QuizPage.jsx`, its `/quiz`
-   route (`App.jsx`) and nav entry (`Layout.jsx`), and `frontend/src/lastProcedure.js`
-   (its only consumer was the old Quiz page's "This Procedure" option — nothing else
-   referenced it, including the `writeLastProcedure` call/effect that used to live in
-   `SqlConsolePage.jsx`, also removed). **Predict Mode** (`SqlConsolePage.jsx`'s
-   in-debugger toggle, internally still named `quiz-*` in its own state/class names —
-   entirely separate from any of this) was checked untouched both before and after, live.
+1. **`LearnPage.jsx` reordered.** The Video panel block (caption + `<iframe>`) and the
+   Concept Explanation panel block (the `<article className="learn-concept">`) swapped
+   positions — new order Concept Explanation → Video → Deep Dive → References. No JSX
+   content, class names, or text inside either block changed; their `{/* a. */}`/
+   `{/* b. */}` ordering comments were relabeled to match the new order. Deep Dive and
+   References were untouched, including their own comment labels.
 
-2. **Added `backend/app/practice.py`** — same Gemini client wiring as
-   `app/explainer.py`/the old `quiz.py` (`_get_gemini_client`/`_GEMINI_MODEL`, reused not
-   duplicated), same ask-for-JSON/strip-fence/retry-once-at-temp-0 two-strikes parsing
-   pattern the old quiz generator used. The real behavior change:
-   `generate_practice_questions` **always returns something** — unlike the old
-   `/quiz/generate` (502 on any Gemini failure, no fallback), this one falls back to a
-   hardcoded, hand-written `_FALLBACK_BANK` (split by difficulty, 8 questions each,
-   covering procedures/functions/cursors/exception-handling/control-flow) sampled via
-   `random.sample`/`random.choices`, same "never leave the user with a bare failure for a
-   nice-to-have AI feature" principle `app/explainer.py`'s template fallback already uses
-   for `/explain`. New `POST /practice/generate` (`{difficulty, numQuestions}`,
-   `numQuestions` bounds-checked 1-15 via a pydantic `Field`).
+**Verification**: `npm run lint`/`npm run build` both clean (same two pre-existing
+warnings as every recent session). Live-verified via headless Chrome against a freshly
+restarted frontend dev server: read all four `.learn-panel > .panel-tab` labels in DOM
+order and confirmed they match `['CONCEPT EXPLANATION', 'VIDEO', 'DEEP DIVE',
+'REFERENCES']` exactly; independently confirmed via each panel's bounding-box Y position
+that the visual top-to-bottom order matches (not just DOM query order); confirmed each
+panel's content is intact (Concept Explanation's `<h2>`, the video iframe's `src`, Deep
+Dive's 5 topics, all 4 reference categories) — in both Day and Night mode, with full-page
+screenshots taken and inspected in both. Spot-checked the Home page's top nav to confirm
+nothing else in the app shifted. No backend involved.
 
-3. **Added `frontend/src/pages/PracticePage.jsx`** (`/practice`, nav entry "AI Practice"
-   in the same top-level nav list the old Quiz entry occupied) — a three-phase
-   `setup → question → score` state machine. Setup: three large color-coded difficulty
-   cards (teal=easy, amber=medium, coral=hard) + a stepper/slider for 1-15 questions +
-   an animated-caret/skeleton loading state (no spinner). Question flow: the spec's
-   two-attempt retry rule — a first wrong pick shows an amber "not quite, try again"
-   banner and doesn't count against the score; only a second wrong pick on the same
-   question is final (counts as incorrect, reveals the correct answer). Score screen:
-   first-try/retry/incorrect breakdown chips + an expandable per-question review
-   (`<details>`, same accessible pattern `HelpPage.jsx`'s accordion uses). Matching
-   `App.css` section added (difficulty cards, stepper, generating caret/skeleton shimmer,
-   option correct/wrong/tried states, score chips, review accordion) — fully
-   theme-aware via existing CSS custom properties, no hardcoded colors.
+### Previous session — Competitive Exam: accordion list, not a quiz flow
 
-4. **Two real bugs found and fixed live, neither caught by lint/build**:
-   - A `str.format` / literal-`{`/`}` collision: the shared JSON-shape prompt text
-     contains a real JSON example (literal braces), so calling `.format(count=...)` on it
-     raised `KeyError` immediately on the first Gemini call. Fixed with a `__COUNT__`
-     marker + `str.replace` instead of `str.format`.
-   - A CSS specificity bug: the app's global `button:disabled { border-color: ...;
-     color: ...; }` rule (a type+pseudo-class selector, specificity `(0,1,1)`) silently
-     beat the new single-class `.practice-option-correct`/`-wrong`/`-tried` modifiers
-     (`(0,1,0)`) on every answered (disabled) option — confirmed via `getComputedStyle`
-     (an answered-correct option still showed `border-hairline`, not teal) before
-     assuming the styling worked. Fixed with compound selectors
-     (`.practice-option.practice-option-correct`, specificity `(0,2,0)`) rather than
-     `!important` (unused elsewhere in this codebase). Re-verified via `getComputedStyle`
-     for all three states (correct/wrong/tried) post-fix, in both themes.
-   - Also caught (before it could ship broken): `frontend/vite.config.js`'s dev proxy
-     still had a `/quiz` entry and no `/practice` one — Vite's proxy matches path
-     *prefixes*, so `/practice/generate` 404'd from the dev server entirely until this
-     was swapped. Same collision pattern the file already documents for
-     `/debug`/`/history`/`/sql`.
+Full prompt + rationale: `PROMPT_LOG.md` #34, `docs/features.md`'s "Competitive Exam"
+section (describes the current shape, with a 3-phase "Evolution" summary).
 
-**Testing added**: `backend/app/tests/test_practice.py` (JSON-shape validation,
-fallback-bank sampling with/without replacement, Gemini-mocked success/retry/
-double-failure-into-fallback, input validation) + `test_practice_endpoint.py` (request
-shape, a real end-to-end no-key → fallback path through the actual endpoint, a
-malformed-Gemini-response → fallback path, pydantic bounds validation).
-
-**Verification**: backend suite **568 passing** (was 552), 0 xfailed. `npm run
-lint`/`npm run build` both clean (same two pre-existing warnings as every recent
-session). Live-verified via headless Chrome (Puppeteer-core + local Chrome, fresh
-scratchpad `node_modules` — none was reused, all prior sessions' had been cleaned up)
-against a freshly started dev backend+frontend (neither was already running — both had to
-be started this session): nav shows "AI Practice" and no "Quiz" entry; direct-navigating
-the old `/quiz` URL renders no quiz UI; Predict Mode confirmed still present/functional;
-full setup → real-Gemini-generated question → a genuine wrong-then-correct retry (and,
-across repeated runs, a genuine wrong-then-wrong-again final-incorrect path) → score
-screen → expandable review → "Try Another Set" (difficulty kept) flow, in both Day and
-Night mode; confirmed no horizontal overflow at 400px width. Screenshots taken and
-inspected in both themes. Neither `debug_history.db` nor `user_data.db` touched this
-session (`/practice/generate` has no history/user-db side effects).
+Replaced `CompetitiveExamPage.jsx`'s entire `setup`/`question`/`score` quiz state machine
+and scoring/retry state with a single `expanded` (`Set` of open question ids). All 15
+questions now render in one fixed list, each a `.competitive-exam-card` with a
+toggle-button header, an always-visible code snippet (if any) as a *sibling* of the
+collapsible region (not inside it — a plain `<details>` couldn't do this, since
+everything after `<summary>` hides together, hence the manual `Set`-based toggle instead),
+and a conditionally-rendered answer region reusing AI Practice's own
+`.practice-review-option`/`-correct`/`.practice-review-mark`/`.practice-review-explanation`
+classes. Options are plain `<li>`s — no click-to-check interaction. CSS: replaced the dead
+`.competitive-exam-intro-panel` rule with `.competitive-exam-list`/`-card`/`-card-header`/
+`-question`/`-chevron`/`-answer`. `HelpPage.jsx` updated to match. Verified live in both
+themes (all 15 cards collapsed on load, expand/collapse/multi-open all confirmed).
 
 ---
 
@@ -140,18 +103,15 @@ session (`/practice/generate` has no history/user-db side effects).
   `backend/app/tests/golden/*.json`, **21 fixtures**): runs every sample through the REAL
   `/debug` endpoint and diffs the resulting step trace against a checked-in baseline.
   **Run this before considering any future tokenizer/parser/interpreter-touching phase
-  done.** Untouched this session (no `DebugStep`/interpreter changes — this was a
-  frontend-page + standalone-endpoint swap only).
+  done.** Untouched this session (no backend/interpreter changes at all — frontend-only).
 - **Property-based tests** (`backend/app/tests/test_property_based.py`, `hypothesis`):
   mutates the real samples via `demo_db.create_demo_connection()`; two invariants across
   1000 examples each.
 - **Known-bugs tracker** (`backend/app/tests/test_known_bugs.py`): empty of unfixed bugs.
 - **Hand-written grammar edge cases** (`backend/app/tests/test_grammar_edge_cases.py`).
-- **AI Practice tests** (`backend/app/tests/test_practice.py` +
-  `test_practice_endpoint.py`, new this session — replaced `test_quiz.py`/
-  `test_quiz_endpoint.py`, deleted): see "This session's work" above.
-- Backend suite: **568 passing, 0 xfailed** (was 552; +16 net this session — roughly
-  30 quiz tests removed, ~30 practice tests added, plus overlap).
+- **AI Practice tests** (`backend/app/tests/test_practice.py` + `test_practice_endpoint.py`).
+- Backend suite: **568 passing, 0 xfailed** — unchanged this session (no backend touched;
+  Competitive Exam has no backend, so no backend tests were ever needed for it).
 
 ---
 
@@ -196,31 +156,59 @@ session (`/practice/generate` has no history/user-db side effects).
    Mermaid version, diagram type, or theme config, re-verify this conversion still finds
    the right text/colors rather than assuming it degrades gracefully.
 10. **AI Practice has no persistence of past sessions/history** (flagged, not built —
-    explicitly out of scope this phase). A future phase wanting it needs its own scoping
-    (where to store results, whether per-viewer, etc.) rather than assuming it slots into
-    `history.py`'s existing debug-run history, which is a different shape entirely.
+    explicitly out of scope). Competitive Exam has even less state to persist now (no
+    scoring at all post-#34) — its only remaining per-viewer state is which cards are
+    expanded, intentionally not persisted (a fresh page load always starts fully
+    collapsed).
 11. `practice.py`'s `_FALLBACK_BANK` is static/hand-written (8 questions per difficulty) —
     a user who exhausts Gemini and generates many sets in a row at the same difficulty
     will start seeing repeats (samples with replacement once `numQuestions` exceeds the
     bank size, e.g. asking for 15 at once already does). Acceptable for a fallback path,
     not the primary path, but worth knowing if a future session wants to grow the bank.
-12. The **general CSS lesson from this session's specificity bug is worth remembering for
-    any future page**: a modifier class meant to override styling on a `<button
-    disabled>` (or any element the app's existing global `button`/`button:disabled`
-    rules already target) needs a compound selector (`.base-class.modifier-class`) to
-    reliably outrank those global rules — a bare single-class modifier can silently lose.
+    (Unrelated to Competitive Exam's own bank, which always renders all 15, no sampling.)
+12. The **general CSS lesson from an earlier session's specificity bug is worth
+    remembering for any future page**: a modifier class meant to override styling on a
+    `<button disabled>` (or any element the app's existing global `button`/
+    `button:disabled` rules already target) needs a compound selector (`.base-class
+    .modifier-class`) to reliably outrank those global rules — a bare single-class
+    modifier can silently lose. (Not triggered by this session's changes.)
+13. **A nav item's `NavLink` needs `end: true` whenever a new route is added that's a
+    literal path-prefix extension of an existing nav item's route** (e.g. `/practice` vs.
+    `/practice/competitive-exam`) — fixed for this pair in #33; worth checking any time a
+    new nested route is added under an existing top-level one.
+14. **`<details>`/`<summary>` cannot show an always-visible sibling element while
+    collapsed** — everything after `<summary>` inside a `<details>` hides together when
+    closed, so a design that needs one child to stay visible while collapsed (like
+    Competitive Exam's code snippet, visible even when the options/explanation are
+    hidden) needs a manual open/closed state (a plain `<button>` header + conditional
+    rendering) instead of native `<details>`, even though `<details>` is otherwise the
+    simpler/more accessible default the codebase reaches for elsewhere (e.g. AI Practice's
+    own review accordion, which doesn't have this requirement and still uses `<details>`
+    correctly). Worth remembering before reaching for `<details>` on any future
+    collapsible-with-a-visible-preview design.
 
 ---
 
 ## Live gotchas
 
+- **`<details>`/`<summary>` hides ALL content after `<summary>` when closed — there's no
+  way to keep one child visible while collapsed** — if a design needs that (a preview
+  element that stays visible while the rest is collapsed), use a manual `Set`/boolean
+  open-state + a `<button>` header + conditional rendering instead, not `<details>`. See
+  Competitive Exam's code-snippet-stays-visible-while-collapsed requirement, `PROMPT_LOG.md`
+  #34.
 - **A CSS modifier class on a `<button disabled>` can silently lose to this app's global
   `button:disabled` rule** (App.css, top of file) — that rule's specificity `(0,1,1)`
   (type selector + pseudo-class) beats a single custom class `(0,1,0)`, regardless of
   source order. Confirmed live via `getComputedStyle`, not assumed from reading the CSS.
   Fix: make the modifier a compound selector with the element's base class
   (`.base-class.modifier-class`, specificity `(0,2,0)`), not a bare `.modifier-class`.
-  See AI Practice's `.practice-option-correct`/`-wrong`/`-tried` this session.
+  See AI Practice's `.practice-option-correct`/`-wrong`/`-tried`.
+- **A `NavLink` without `end: true` matches any path that starts with its `to` value** —
+  so a nav item at `/practice` stays "active" on `/practice/competitive-exam` too unless
+  `end: true` is set. Always add `end: true` to an existing nav item when a new route is
+  introduced that literally extends its path as a prefix. See Layout.jsx's `/practice`
+  entry, fixed in #33.
 - **`str.format()` cannot be used on a prompt-instruction string that itself contains a
   literal JSON example** (real `{`/`}` characters) — Python tries to interpret every
   brace pair as a format field and raises `KeyError` on the first one it doesn't
@@ -232,16 +220,20 @@ session (`/practice/generate` has no history/user-db side effects).
   page + `/practice/generate` endpoint) needs its own proxy entry with the
   `bypassNavigations` guard, same as the existing `/debug`/`/history`/`/sql` entries.
   Forgetting this 404s the API call from the dev server with no other symptom — easy to
-  miss without live-verifying an actual fetch, not just a page load. Removing a page+
-  endpoint pair (like the old Quiz page) means removing its proxy entry too, not just the
-  route/component.
-- **Both dev servers may not be running at the start of a new session** — this session,
-  neither `uvicorn`/`npm run dev` was up; always `curl`/`netstat` before assuming either
-  is already running rather than trusting a previous session's HANDOFF note. Restarting
-  is `uvicorn app.main:app --port 8000` (from `backend/`, `.venv/Scripts/python.exe -m
-  uvicorn ...` on Windows) and `npm run dev` (from `frontend/`) — and after any
-  `vite.config.js` edit, the Vite dev server needs an actual restart (not just a file
-  save) to pick up new/changed proxy entries.
+  miss without live-verifying an actual fetch, not just a page load. (Not relevant to
+  Competitive Exam — it has no backend endpoint at all, so no proxy entry was needed.)
+- **Renaming/rewriting frontend files mid-session is safer verified against a freshly
+  restarted Vite dev server, not just relying on HMR** — this and the previous session
+  both stopped the running `vite.js` process and started a clean one after structural
+  file changes, rather than trusting hot-module-reload to cleanly drop old module graph
+  entries.
+- **Both dev servers may not be running at the start of a new session** — always
+  `curl`/`netstat` before assuming either is already running rather than trusting a
+  previous session's HANDOFF note. Restarting is `uvicorn app.main:app --port 8000` (from
+  `backend/`, `.venv/Scripts/python.exe -m uvicorn ...` on Windows) and `npm run dev`
+  (from `frontend/`) — and after any `vite.config.js` edit, the Vite dev server needs an
+  actual restart (not just a file save) to pick up new/changed proxy entries. This
+  session only started the frontend dev server (Competitive Exam has no backend surface).
 - **A `<foreignObject>`-containing SVG permanently taints a `<canvas>` once drawn via
   `<img>` + `drawImage`** — `canvas.toDataURL()`/`toBlob()` then throws `SecurityError:
   Tainted canvases may not be exported`, confirmed live, regardless of the image source
@@ -275,28 +267,26 @@ session (`/practice/generate` has no history/user-db side effects).
 - **Puppeteer `fullPage: true` screenshots can show a stale "ghost" of a just-collapsed
   CSS-opacity-transitioned element** even when `getComputedStyle` confirms the correct
   hidden state at the same moment. Workaround: a fresh `browser.newPage()` per `fullPage`
-  capture, or `fullPage: false` (this session used fixed-viewport, non-fullPage shots).
+  capture, or `fullPage: false`. (This session used `fullPage: true` successfully for the
+  final expanded-state screenshots since no opacity-transitioned element was involved.)
 - **`backend/data/debug_history.db` needs manual cleanup after any live-verification
   session that actually clicks Run** (on a procedure/function trace) — it auto-rotates at
   50 rows but real `/debug` calls during manual testing still show up; delete test-run
   rows afterward (`DELETE /history/{id}` while the backend is up). Not needed this
-  session (`/practice/generate` never calls `/debug` or writes history).
+  session (Competitive Exam never calls `/debug` or any backend endpoint).
 - **`backend/data/user_data.db` is a similarly real, persistent artifact** — any live
   verification that runs CREATE TABLE/INSERT/UPDATE/DELETE against the real backend
-  leaves real rows/tables behind if not cleaned up. Not needed this session (AI Practice
-  never touches it).
+  leaves real rows/tables behind if not cleaned up. Not needed this session.
 - Puppeteer-core + a local Chrome install (`C:\Program Files\Google\Chrome\Application\
   chrome.exe`) is the live-verification approach in use. Scratchpad `node_modules` from
-  prior sessions are NOT persistent (all had been cleaned up by this session's start) —
-  expect to `npm install puppeteer-core@latest` fresh each session rather than assuming a
-  reusable install is still there; it installs in a few seconds so this isn't costly.
+  prior sessions are NOT persistent across genuinely new sessions — but this session
+  reused the still-live scratchpad install from the immediately preceding session within
+  the same working directory, confirmed present before reusing rather than assuming.
 - `found`/`notfound` are reserved KEYWORDs in this grammar (the `cur_name%FOUND`/
   `cur_name%NOTFOUND` cursor-attribute suffix) — a variable or OUT parameter literally
   named `found` fails to parse with a confusing "Expected IDENTIFIER (got KEYWORD)"
   error; use `was_found`/`matched`/similar instead.
-- Mobile nav overflows horizontally at ~400px width — actually NOT reproduced this
-  session (`.top-nav` has `flex-wrap: wrap` already, confirmed via a live
-  `scrollWidth`/`clientWidth` check at exactly 400px on `/practice`, `/sql-console`, and
-  the nav itself); a prior HANDOFF's note calling this a live pre-existing bug may be
-  stale — re-verify with an actual measurement (not eyeballing) before treating it as
-  still open.
+- Mobile nav overflows horizontally at ~400px width — actually NOT reproduced across
+  multiple recent sessions (`.top-nav` has `flex-wrap: wrap` already). Treat a HANDOFF
+  note calling this a live pre-existing bug as stale unless re-verified with an actual
+  `scrollWidth`/`clientWidth` measurement.

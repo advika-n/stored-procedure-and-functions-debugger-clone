@@ -20,7 +20,12 @@ const NAV_ITEMS = [
   // History intentionally hidden from the nav (kept as a real route --
   // /history, HistoryPage.jsx, and the backend's history.py logging are
   // all untouched -- just no visible/clickable nav entry for it anymore).
-  { to: '/practice', label: 'AI Practice' },
+  // `end: true` here so this tab doesn't also light up while on
+  // /practice/competitive-exam -- a sibling route/page below, not a
+  // sub-view of AI Practice (it used to be reached via an in-page toggle
+  // on this page instead of its own nav entry; that toggle is gone now).
+  { to: '/practice', label: 'AI Practice', end: true },
+  { to: '/practice/competitive-exam', label: 'Competitive Exam' },
   { to: '/about', label: 'About' },
   // Course requirement: the Learn tab must be "prominent" and "positioned
   // top-right" -- rightmost of the main tabs (right next to the Help/theme/

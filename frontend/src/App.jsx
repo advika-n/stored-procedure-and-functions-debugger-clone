@@ -6,6 +6,7 @@ import SqlConsolePage from './pages/SqlConsolePage'
 import TestRunnerPage from './pages/TestRunnerPage'
 import HistoryPage from './pages/HistoryPage'
 import PracticePage from './pages/PracticePage'
+import CompetitiveExamPage from './pages/CompetitiveExamPage'
 import AboutPage from './pages/AboutPage'
 import HelpPage from './pages/HelpPage'
 import LearnPage from './pages/LearnPage'
@@ -30,6 +31,13 @@ function App() {
             <Route path="/tests" element={<TestRunnerPage />} />
             <Route path="/history" element={<HistoryPage />} />
             <Route path="/practice" element={<PracticePage />} />
+            {/* Fixed, hand-written question bank -- separate from AI
+                Practice above (which is Gemini-generated). See
+                CompetitiveExamPage.jsx's own module comment. Formerly
+                "Hard Practice" at /practice/hard -- that URL now redirects
+                rather than 404ing, for anyone with an old bookmark/link. */}
+            <Route path="/practice/hard" element={<Navigate to="/practice/competitive-exam" replace />} />
+            <Route path="/practice/competitive-exam" element={<CompetitiveExamPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/help" element={<HelpPage />} />
             <Route path="/learn" element={<LearnPage />} />

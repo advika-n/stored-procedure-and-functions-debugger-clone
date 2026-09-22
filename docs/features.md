@@ -756,3 +756,65 @@ score screen → expand a review item → "Try Another Set" (difficulty selectio
 kept) flow, in both Day and Night mode; confirmed no horizontal overflow at 400px width.
 `getComputedStyle`-verified exact accent colors (not just "looks about right") for all
 three answered-option states post-fix, per above.
+
+## Competitive Exam — curated question bank page
+
+A sibling of AI Practice, added specifically to have a set of practice questions whose
+*source* is never the AI — a fixed, hand-written 15-question PL/SQL bank on transactions,
+cursors, exception handling, and triggers. Data lives in
+`frontend/src/competitiveExamQuestions.js` (a plain array, each `{ id, question, code?,
+options[4], correctIndex, explanation }`, hand-transcribed), rendered by
+`frontend/src/pages/CompetitiveExamPage.jsx` at `/practice/competitive-exam`, its own
+top-level nav entry (`Layout.jsx`'s `NAV_ITEMS`).
+
+**Current shape: a static expandable reference list, not a quiz.** All 15 questions
+render at once, each a `.competitive-exam-card` collapsed to just its numbered prompt (a
+`.competitive-exam-code` snippet, if the question has one, sits *outside* the collapsible
+region so it's visible even while collapsed — only the options/explanation are hidden).
+Clicking a card's header button (`aria-expanded`/`aria-controls` wired for
+accessibility) toggles a `.competitive-exam-answer` region open, revealing the options
+with the correct one pre-marked (reuses `.practice-review-option`/`-correct`/
+`.practice-review-mark`/`.practice-review-explanation` — AI Practice's own score-review
+accordion classes — rather than inventing parallel ones) plus the explanation. `expanded`
+is a plain `Set` of open question ids in `useState`; any number of cards can be open at
+once (not a forced single-open accordion). Options are plain `<li>`s, not buttons — there
+is no click-to-answer/checking interaction at all, by design: this is reference material,
+not a quiz.
+
+**Evolution across three phases** (full prompts: `PROMPT_LOG.md` #32–34):
+1. Shipped first as "Hard Practice" at `/practice/hard`, built as a one-question-at-a-time
+   *quiz* — a direct structural copy of `PracticePage.jsx`'s `setup`/`question`/`score`
+   phases, two-attempt retry logic, and score breakdown, reached via a `.practice-mode-
+   tabs` pill switcher on the AI Practice page (not its own top-level nav entry).
+2. A fix phase gave it its own top-level nav entry instead (removing the pill switcher,
+   which had left the top nav's "AI Practice" entry visually active on `/practice/hard`
+   too, since `Layout.jsx`'s `NAV_ITEMS` didn't set `end` on non-Home items — fixed by
+   adding `end: true` to the `/practice` entry) and renamed "Hard Practice" →
+   "Competitive Exam" throughout, including the route (`/practice/hard` →
+   `/practice/competitive-exam`, old URL now a `<Navigate replace>` redirect in
+   `App.jsx`) and the files/component/CSS-class names
+   (`HardPracticePage.jsx`/`hardPracticeQuestions.js`/`.hard-practice-*` →
+   `CompetitiveExamPage.jsx`/`competitiveExamQuestions.js`/`.competitive-exam-*`).
+3. A further fix phase replaced the quiz flow entirely with the static expandable list
+   described above — no more `setup`/`question`/`score` phases, no scoring/retry state,
+   no "Start" gate, no "Retry This Set", no subtitle. The question bank's internal
+   `hp-01`..`hp-15` ids (React `key`s only, never user-facing) were never renamed across
+   any of the three phases — not worth the diff.
+
+**Out of scope, deliberately** (per the original phase brief, still true): no backend
+endpoint (the bank ships as static frontend data, so nothing in `backend/app/` has ever
+changed for this feature) and no persistence of which cards are expanded across sessions.
+
+**Verification** (most recent phase): `npm run lint`/`npm run build` clean (same two
+pre-existing warnings). Live-verified via headless Chrome against a freshly restarted
+frontend dev server (restarted, not relying on HMR, consistent with the rename phase's
+same precaution): confirmed all 15 `.competitive-exam-card` elements present and
+collapsed on load (zero `.competitive-exam-answer` regions visible before any click);
+confirmed at least one `.competitive-exam-code` block stays visible pre-expand; confirmed
+`aria-expanded` flips `false`→`true` on click and a `.competitive-exam-answer` appears
+with exactly one `.practice-review-option-correct` and a non-empty explanation; confirmed
+expanding a second card brings the visible-answer count to 2 (multiple open at once);
+confirmed re-clicking the first card collapses it back (`aria-expanded` → `false`, count
+back to 1); confirmed no `.page-subtitle`, `.practice-progress-track`, or
+`.practice-score-panel` render anywhere on the page — in both Day and Night mode, with
+screenshots taken and inspected in both.

@@ -3411,3 +3411,374 @@ effects at all).
 
 `HANDOFF.md` rewritten with this session's status (its own convention: fully rewritten,
 not appended to).
+
+---
+
+## 32. Hard Practice — curated question bank page
+
+**Date:** 2026-09-22 · **Not yet committed**
+
+**Prompt (verbatim):**
+
+> PHASE: Hard Practice — curated question bank page
+>
+> Add a new page, separate from the existing AI-generated "AI Practice" tab,
+> for a fixed, hand-written set of hard PL/SQL questions. Route: /practice/hard
+> (or a tab within the AI Practice page — your call on nav structure, but the
+> question SOURCE must not go through Gemini for this set).
+>
+> ## Data
+> Hardcode this question bank as a static JSON/JS array (frontend or backend,
+> your choice) — do NOT generate these via the AI. Each entry:
+> { id, question, code (optional, for questions with a code block),
+>   options: [4 strings], correctIndex, explanation }.
+> [15 hand-written PL/SQL questions supplied verbatim — transactions,
+> cursors, exception handling, triggers — each converted into that object
+> shape, code snippets kept in the `code` field]
+>
+> ## Behavior — reuse the AI Practice interaction pattern already built
+> - One question at a time, progress indicator ("Question X of 15")
+> - Selecting an answer:
+>   - Correct: success state, show explanation, "Next Question"
+>   - Wrong (first attempt): "not quite — try again" state, let them re-pick
+>   - Wrong (second attempt): mark incorrect, highlight correct answer, show
+>     explanation, "Next Question"
+>   - Track first-try-correct / correct-on-retry / incorrect per question
+> - Code snippets in questions render in a monospace block consistent with
+>   the rest of the app's code display (same font/styling as the debugger
+>   output, not a plain `<pre>` tag)
+> - Final score screen: score breakdown (first-try / retry / wrong), expandable
+>   per-question review with the code, the explanation, and what they answered
+> - "Retry This Set" button on the score screen that resets and reshuffles
+>   question order (shuffle the 15, don't re-fetch anything)
+>
+> ## Design
+> - Same "Debugger Notebook" system as the rest of the app (dark navy,
+>   IBM Plex Mono + Space Grotesk, amber/teal/coral accents), theme-aware
+>   for Day/Night mode
+> - Since this set is fixed and curated (not AI-generated), the setup screen
+>   is simpler than AI Practice's — no difficulty/count inputs needed, just a
+>   "Start" button and maybe a one-line description that these are hand-picked
+>   hard questions on transactions, cursors, exceptions, and triggers
+>
+> ## Out of scope
+> - No backend endpoint needed for this set — it can ship as static data
+> - No persistence of scores across sessions
+>
+> ## Verification
+> - Confirm all 15 questions render correctly with their code blocks
+> - Live-verify via headless Chrome: full flow including one deliberate
+>   wrong-then-right retry, reaching the score screen, and "Retry This Set"
+>   reshuffling correctly, in both themes
+
+**What was built.** `frontend/src/hardPracticeQuestions.js` — the 15 questions as a
+static, hand-written array (never touches Gemini), each `{ id, question, code?,
+options[4], correctIndex, explanation }`, transcribed from the prompt's PL/SQL content
+verbatim. `frontend/src/pages/HardPracticePage.jsx` (new route `/practice/hard`,
+`App.jsx`) — a `setup → question → score` state machine that's structurally identical to
+`PracticePage.jsx`'s (same `attempts`/`status`/`results` shapes, same two-attempt retry
+rule, same first-try/retry/incorrect scoring), minus the generation step: `setup` is just
+a one-line blurb + a Start button (no difficulty/count controls, nothing to configure for
+a fixed bank), and "Retry This Set" (score screen) reshuffles the same 15 in place
+(Fisher–Yates) and drops straight back into question 1 — no detour through setup, since
+there's nothing to re-choose.
+
+**Nav structure decision.** No new top-level nav entry — a small `.practice-mode-tabs`
+pill switcher ("AI Practice" / "Hard Practice") was added to the top of *both*
+`PracticePage.jsx` and `HardPracticePage.jsx` instead, linking `/practice` ↔
+`/practice/hard`. Keeps the main top nav from growing a second Practice-shaped entry
+while still making the fixed bank easy to find from the AI one.
+
+**Styling — maximal reuse, no new visual system.** The question/option/feedback/score/
+review markup and CSS are the *same* `.practice-*` classes `PracticePage.jsx` already
+defined in `App.css` (options, retry/correct/wrong states, progress bar, score chips,
+review accordion) — these classes were already generic, not AI-Practice-specific, so
+reusing them verbatim was the "reuse the AI Practice interaction pattern" instruction read
+literally, not just in spirit. Only additions to `App.css`: `.practice-mode-tabs`/
+`.practice-mode-tab(-active)` (the new pill switcher) and `.hard-practice-code`/
+`.hard-practice-intro-panel` (spacing tweaks). Code snippets reuse `.theory-code` verbatim
+(the Learn page's Deep Dive panel's existing monospace block class) rather than inventing
+a new one — already the exact "same font/styling as the debugger output" class the phase
+asked for.
+
+`HelpPage.jsx` updated (both the page-tabs paragraph and a new list item) to document
+Hard Practice — required for grading accuracy per `CLAUDE.md` §5's Help tab requirement.
+
+**Verification.** `npm run lint`/`npm run build` both clean (same two pre-existing
+warnings as every recent session — `ThemeContext.jsx` fast-refresh, `SqlConsolePage.jsx`
+exhaustive-deps). Live-verified via headless Chrome (Puppeteer-core + local Chrome, fresh
+scratchpad `node_modules`) against a freshly started frontend dev server only (no backend
+endpoint involved — the bank is static data, per the phase's own "no backend endpoint
+needed" scope note): walked the real UI through all 15 questions end-to-end, confirming
+every question with a `code` field rendered its snippet, the two-attempt retry flow
+(wrong-then-correct AND wrong-then-wrong-final, since no question's `correctIndex` is 0 —
+clicking the first option always exercises retry naturally), the score screen's
+first-try/retry/incorrect breakdown, an expandable review item, "Retry This Set" landing
+directly on "QUESTION 1 OF 15" with no setup detour, and a reshuffled question order
+(compared before/after by content, confirmed different) — all in Night mode, then
+re-verified theme switching, a code block's rendered background in Day mode, and a
+400px-width layout with a real `scrollWidth`/`clientWidth` measurement (no overflow),
+in Day mode. Screenshots taken and inspected. Neither `debug_history.db` nor
+`user_data.db` touched (no backend calls this session at all).
+
+---
+
+## 33. Competitive Exam — nav placement, question UI, and rename fix
+
+**Date:** 2026-09-22 · **Not yet committed**
+
+**Prompt (verbatim, two combined fix requests given together):**
+
+> FIX: Hard Practice page — nav placement and question UI
+>
+> ## Nav change
+> - Remove the "AI Practice / Hard Practice" toggle currently shown inside
+>   the AI Practice page
+> - Add "Hard Practice" as its own top-level nav item, alongside AI Practice,
+>   Compare, Learn, etc.
+> - AI Practice page goes back to just being AI Practice — no toggle needed there
+>
+> ## Question UI change
+> Currently the page shows the whole question bank as static text on one
+> screen. Replace with the same one-at-a-time interactive flow used in AI
+> Practice:
+> - Show ONE question at a time, with a progress indicator ("Question X of 15")
+> - Code snippet (if the question has one) in a syntax-highlighted block
+> - The 4 options rendered as clickable/selectable cards — NOT plain text,
+>   NOT a `<select>` dropdown — each option is its own clickable element
+> - On click:
+>   - Correct: card highlights green/teal, explanation appears below,
+>     "Next Question" button appears
+>   - Wrong (1st attempt): card highlights red/coral briefly, "not quite —
+>     try again" message, options stay clickable for a second attempt
+>   - Wrong (2nd attempt): mark incorrect, highlight the correct option,
+>     show explanation, "Next Question" button appears
+> - Reuse whatever component/styling AI Practice already uses for this exact
+>   interaction (correct/wrong/retry states, option cards) rather than
+>   rebuilding it — this should look and feel identical between the two pages,
+>   just with a fixed vs. AI-generated question source
+> - Score screen at the end, same as AI Practice: score breakdown, expandable
+>   per-question review, "Retry This Set" (reshuffles the 15)
+>
+> ## Verify
+> - Live-check via headless Chrome: Hard Practice appears as its own nav tab,
+>   AI Practice no longer shows the toggle, and the full click-through-options
+>   flow works for at least 3 questions including one deliberate wrong-then-
+>   right retry
+>
+> FIX: Rename "Hard Practice" to "Competitive Exam"
+>
+> Rename the Hard Practice feature to "Competitive Exam" throughout:
+> - Nav tab label: "Hard Practice" → "Competitive Exam"
+> - Route: /practice/hard → /practice/competitive-exam (update any internal
+>   links/redirects accordingly)
+> - Page heading: "Hard Practice" → "Competitive Exam"
+> - Any subtitle/description text referencing "Hard Practice" or "hard
+>   practice set" → update to "Competitive Exam" phrasing (keep the rest of
+>   the description — "15 hand-picked, exam-style PL/SQL questions..." — as is)
+> - Component/file names can stay as-is internally (e.g. HardPractice.jsx)
+>   unless you want to rename those too for consistency — your call, just
+>   keep all user-facing text and the URL updated
+>
+> Verify: nav shows "Competitive Exam", old /practice/hard URL either
+> redirects or 404s cleanly (no broken link left in nav), page loads and
+> functions identically to before.
+
+**What was found before making changes.** The "Question UI change" section described a
+regression that didn't actually exist — re-reading `HardPracticePage.jsx` (from #32)
+before touching it showed it already had exactly the requested one-at-a-time interactive
+flow: real `<button>` option cards, a progress indicator, correct/retry/wrong visual
+states, code blocks via `.theory-code`, and a score screen with breakdown + expandable
+review + "Retry This Set". This was verified explicitly (live, via headless Chrome —
+option elements confirmed as real `<button>` tags, not text or a `<select>`) rather than
+assumed correct or silently rebuilt; no UI rework was needed. The two changes that
+actually were real: the nav toggle (present, needed removing) and the naming (present,
+needed the rename).
+
+**What was built — nav placement.** Removed `.practice-mode-tabs` from both
+`PracticePage.jsx` and the (then-)`HardPracticePage.jsx`. Added a new top-level entry to
+`Layout.jsx`'s `NAV_ITEMS`, `{ to: '/practice/competitive-exam', label: 'Competitive
+Exam' }`, right after AI Practice — and, necessarily, `end: true` on the existing
+`/practice` entry, since without it "AI Practice" would light up as active on
+`/practice/competitive-exam` too (`/practice` is a literal path prefix of it — the exact
+quirk #32's own HANDOFF flagged and worked around with the pill switcher instead of
+fixing). Dead `.practice-mode-tabs`/`.practice-mode-tab(-active)` CSS deleted from
+`App.css`. Confirmed via `git diff` that `PracticePage.jsx` is now byte-identical to its
+pre-#32 committed version — adding then removing the toggle was a clean net no-op.
+
+**What was built — rename.** `/practice/hard` → `/practice/competitive-exam` (old URL now
+a `<Navigate replace>` redirect in `App.jsx`, same pattern `/debugger` → `/sql-console`
+already uses). All user-facing text updated: nav label, `<h1>`, the setup panel's
+`panel-tab` string, `HelpPage.jsx` (both mentions). Files/component/CSS-class names
+renamed too for consistency, even though the prompt said this was optional:
+`HardPracticePage.jsx` → `CompetitiveExamPage.jsx`, `hardPracticeQuestions.js` →
+`competitiveExamQuestions.js`, `.hard-practice-code`/`.hard-practice-intro-panel` →
+`.competitive-exam-code`/`.competitive-exam-intro-panel`. Left alone deliberately: the
+question bank's internal `hp-01`..`hp-15` ids (React `key`s only, never user-facing).
+
+**Verification.** `npm run lint`/`npm run build` both clean (same two pre-existing
+warnings). Live-verified via headless Chrome (Puppeteer-core, reused the still-live
+scratchpad install from earlier in this session) against a **freshly restarted** frontend
+dev server (stopped the running `vite.js` process and started a clean one rather than
+trusting HMR across the file renames): top nav lists "Competitive Exam" as its own tab
+and no "Hard Practice" text appears anywhere; AI Practice page confirmed to no longer
+render `.practice-mode-tabs`; clicking the new nav tab from AI Practice lands on
+`/practice/competitive-exam` with the right `<h1>`; visiting the old `/practice/hard`
+confirmed via `page.url()` to redirect to `/practice/competitive-exam` (not just visually
+similar); confirmed via `.top-nav-item-active` that only "Competitive Exam" highlights on
+that page, not "AI Practice"; confirmed option elements are real `<button>` tags, not a
+`<select>`; walked 3 questions confirming `.practice-option-tried`/`-correct`/`-wrong`
+all appear at the right moments, with a genuine retry naturally triggered (no bank
+question has `correctIndex: 0`, so the first click always misses once). Screenshot taken
+and inspected. No backend involved at any point.
+
+`HANDOFF.md` rewritten with this session's status (its own convention: fully rewritten,
+not appended to).
+
+---
+
+## 34. Competitive Exam — accordion list, not a quiz flow
+
+**Date:** 2026-09-22 · **Not yet committed**
+
+**Prompt (verbatim):**
+
+> FIX: Competitive Exam page — accordion list, not a quiz flow
+>
+> Replace the current one-at-a-time quiz interaction on the Competitive Exam
+> page with a simple expandable list.
+>
+> ## Remove
+> - The subtitle/description text under the page heading ("15 hand-picked,
+>   exam-style PL/SQL questions on transactions, cursors...") — delete it
+>   entirely
+> - The one-question-at-a-time flow: progress indicator ("Question X of 15"),
+>   the "Start" gate screen, Next Question button
+> - All scoring/tracking: no correct/wrong state, no retry-once logic, no
+>   score screen, no "Retry This Set" button
+>
+> ## New layout
+> - Show all 15 questions on the page at once, stacked as a list, each in its
+>   own collapsed card showing just the question text (and code snippet, if
+>   it has one, visible even when collapsed — only the options/answer are
+>   hidden)
+> - Clicking a question card expands it in place to reveal: the 4 options,
+>   the correct one highlighted (e.g. teal/green background + a checkmark),
+>   and the explanation text below it
+> - Clicking the question again (or an X/collapse control) collapses it back
+> - Multiple questions can be expanded at once — don't force accordion-style
+>   single-open-at-a-time unless that's visually cleaner; either is fine,
+>   your call
+> - No click-to-answer interaction on the options themselves — they're just
+>   revealed as reference/study material, correct answer already marked, no
+>   need to click an option to "check" it
+> - Keep the code blocks syntax-highlighted, same styling as before
+>
+> ## Keep
+> - Same "Debugger Notebook" visual system, theme-aware for Day/Night
+> - Page heading "Competitive Exam" stays
+>
+> ## Verify
+> - Live-check via headless Chrome: all 15 questions visible on load
+>   (collapsed), clicking one expands to show options + correct answer +
+>   explanation, collapsing works, in both themes
+
+**What was built.** `CompetitiveExamPage.jsx` rewritten from scratch: the entire
+`setup`/`question`/`score` phase state machine, `attempts`/`status`/`results` state, and
+`handleStart`/`handleSelect`/`handleNext`/`handleRetrySet`/`shuffled` logic were deleted.
+New state is a single `expanded` (a `Set` of open question ids). All 15 questions from
+`competitiveExamQuestions.js` render in a fixed `<ul className="competitive-exam-list">`
+(no more shuffling — nothing left to randomize once there's no "Retry This Set"). Each
+question is a `.competitive-exam-card` `<li>`: a `<button className="competitive-exam-
+card-header">` (question text + a chevron, `aria-expanded`/`aria-controls` wired) that
+toggles the card's id in `expanded`; a `.competitive-exam-code` snippet rendered as a
+sibling *after* the header but *before* the conditionally-rendered answer region — placed
+there deliberately, not inside the collapsible region, so it stays visible while
+collapsed (native `<details>` couldn't do this — everything after `<summary>` hides
+together — hence the manual `Set`-based toggle instead of `<details>`); and, only when
+`expanded.has(q.id)`, a `.competitive-exam-answer` `<div>` with a `<ul>` of options
+(plain `<li>`s, not buttons — no click-to-check) reusing `.practice-review-option`/
+`-correct`/`.practice-review-mark` (AI Practice's own score-review accordion classes —
+same teal correct-answer treatment already used elsewhere in the app, not a new one) and
+`.practice-review-explanation` for the explanation text. The `page-subtitle` paragraph
+under the `<h1>` was deleted per the prompt.
+
+**CSS**: replaced the now-dead `.competitive-exam-intro-panel` rule (the old Start-gate
+screen) with `.competitive-exam-list`/`-card`/`-card-header`/`-question`/`-chevron`/
+`-answer` in `App.css`. `.competitive-exam-code`'s margin was adjusted (now sits between
+the header and the answer region rather than between the question text and options).
+Kept `.competitive-exam-code` itself (still reuses `.theory-code`, same monospace block
+as before, per the prompt's "keep the code blocks syntax-highlighted, same styling").
+Multiple cards can be open simultaneously — no forced single-open accordion, per the
+prompt's "either is fine, your call".
+
+`HelpPage.jsx`'s Competitive Exam list item rewritten to describe the new expand/collapse
+reference-list behavior instead of the old quiz/retry/score-screen flow it previously
+described.
+
+**Verification.** `npm run lint`/`npm run build` both clean (same two pre-existing
+warnings). Live-verified via headless Chrome (reused the scratchpad's still-live
+Puppeteer-core install) against a freshly restarted frontend dev server: confirmed all 15
+`.competitive-exam-card` elements present and collapsed on load, zero
+`.competitive-exam-answer` regions visible before any click, no `.page-subtitle`/
+`.practice-progress-track`/`.practice-score-panel`/setup-gate elements anywhere on the
+page; confirmed at least one code block stays visible pre-expand; clicked a card and
+confirmed `aria-expanded` flips to `true`, exactly one answer region appears with one
+`.practice-review-option-correct` and a non-empty explanation; expanded a second card and
+confirmed both stay open simultaneously (2 visible answer regions); re-clicked the first
+card and confirmed it collapses back (`aria-expanded` → `false`, count back to 1) — all
+in both Day and Night mode, with full-page screenshots taken and inspected in both, plus
+confirmed the top nav still lists "Competitive Exam" as its own tab. No backend involved
+at any point.
+
+`HANDOFF.md` rewritten with this session's status (its own convention: fully rewritten,
+not appended to).
+
+---
+
+## 35. Learn page panel order — Concept Explanation before Video
+
+**Date:** 2026-09-22 · **Not yet committed**
+
+**Prompt (verbatim):**
+
+> FIX: Learn page panel order — Concept Explanation before Video
+>
+> Reorder the panels on the Learn page (LearnPage.jsx). No content changes,
+> no styling changes — just move the two panel blocks.
+>
+> Current order: Video → Concept Explanation → Deep Dive → References
+> New order: Concept Explanation → Video → Deep Dive → References
+>
+> Just cut/paste the Concept Explanation panel above the Video panel;
+> everything else (Deep Dive tab-switcher, References) stays exactly where
+> it is, after Video.
+>
+> Verify: lint/build clean, headless Chrome check that the page renders in
+> the new order (Concept Explanation, Video, Deep Dive, References) in both
+> themes, and that nothing else shifted or broke.
+
+**What was built.** Pure JSX reorder in `LearnPage.jsx` — the Video panel block (`<div
+className="panel learn-panel">` containing the caption + `<iframe>`) and the Concept
+Explanation panel block (containing the `<article className="learn-concept">`) swapped
+positions; no JSX, class names, or text content inside either block was touched. Their
+`{/* a. ... */}`/`{/* b. ... */}` ordering comments were relabeled to match (Concept
+Explanation is now `a.`, Video is now `b.`) so the in-file comments stay accurate — the
+Deep Dive (`c.`) and References (`d.`) blocks, and everything inside them, were left
+completely untouched, including their own comment labels.
+
+**Verification.** `npm run lint`/`npm run build` both clean (same two pre-existing
+warnings as every recent session). Live-verified via headless Chrome (reused the
+scratchpad's Puppeteer-core install, freshly restarted frontend dev server): read each
+`.learn-panel > .panel-tab` in DOM order and confirmed it matches `['CONCEPT
+EXPLANATION', 'VIDEO', 'DEEP DIVE', 'REFERENCES']` exactly; independently confirmed the
+four panels' bounding-box Y positions are strictly ascending top-to-bottom (so the visual
+order matches the DOM order, not just a query-selector artifact); confirmed each panel's
+content is still intact and unbroken (the Concept Explanation `<h2>` text, the video
+iframe's `src` still pointing at the same YouTube video, the Deep Dive topic nav's 5
+topics, and all 4 reference categories) — all in both Day and Night mode, with full-page
+screenshots taken and inspected in both. Also spot-checked the top nav on an unrelated
+page (Home) to confirm nothing else in the app shifted. No backend involved.
+
+`HANDOFF.md` rewritten with this session's status (its own convention: fully rewritten,
+not appended to).

@@ -144,14 +144,15 @@ function HelpPage() {
         <p>Top navigation and header, present on every page:</p>
         <ul className="help-control-list">
           <li>
-            <strong>Home / SQL Console / Compare / AI Practice / About</strong> (top nav), plus{' '}
-            <strong>Help</strong> and <strong>🎓 Learn</strong> (top-right cluster) -- the page tabs.
+            <strong>Home / SQL Console / Compare / AI Practice / Competitive Exam / About</strong> (top nav),
+            plus <strong>Help</strong> and <strong>🎓 Learn</strong> (top-right cluster) -- the page tabs.
             SQL Console is the main tool (the merged step-through debugger and plain-SQL runner); Compare
             runs two procedures side by side and steps through both together; Learn's Deep Dive panel has
             concept write-ups with runnable examples; AI Practice is a standalone, Gemini-generated
             competitive-exam-style question set (GATE DBMS PYQ / placement style), not tied to any
-            procedure. Your saved run history is still there (see section 7) even though it has no nav tab
-            of its own.
+            procedure; Competitive Exam is its own separate tab with a fixed, hand-written 15-question bank
+            on transactions/cursors/exceptions/triggers that never goes through the AI. Your saved run
+            history is still there (see section 7) even though it has no nav tab of its own.
           </li>
           <li>
             <strong>🌙 / ☀️ toggle</strong> (top-right header cluster) -- switches between Night (dark) and
@@ -394,6 +395,17 @@ function HelpPage() {
             answer on the same question counts as incorrect and reveals the correct one. The final score
             screen breaks down correct-on-first-try / correct-on-retry / incorrect, plus an expandable
             per-question review. This is separate from Predict Mode on the SQL Console page.
+          </li>
+          <li>
+            <strong>Competitive Exam</strong> (its own top nav tab, <strong>/practice/competitive-exam</strong>)
+            -- a fixed, hand-written bank of 15 hard PL/SQL questions on transactions (autonomous transactions,
+            savepoints), cursors (implicit/explicit attributes), exception handling (propagation, WHEN OTHERS,
+            RAISE_APPLICATION_ERROR), and triggers (mutating tables, :NEW/:OLD). Unlike AI Practice, these
+            questions are never AI-generated, and this page is a study reference, not a quiz -- all 15 are
+            listed at once, each collapsed to just its prompt (and code snippet, if it has one, which stays
+            visible even collapsed). Click a question to expand it and reveal its options with the correct
+            one already marked plus an explanation; click it again to collapse. No scoring, no clicking an
+            option to "check" it -- multiple questions can be expanded at once.
           </li>
           <li>
             <strong>Learn</strong> -- concept explanation, an instructional video, a Deep Dive panel with

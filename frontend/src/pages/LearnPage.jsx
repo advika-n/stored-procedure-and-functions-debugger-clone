@@ -28,29 +28,7 @@ function LearnPage() {
       </p>
 
       {/* ---------------------------------------------------------------- */}
-      {/* a. ANIMATED VIDEO                                                 */}
-      {/* ---------------------------------------------------------------- */}
-      <div className="panel learn-panel">
-        <span className="panel-tab">VIDEO</span>
-
-        <p className="learn-video-caption">
-          "Advanced SQL Tutorial | Stored Procedures + Use Cases" by Alex The Analyst — walks through
-          creating and using stored procedures with practical examples.
-        </p>
-
-        <div className="learn-video-wrap">
-          <iframe
-            className="learn-video-iframe"
-            src="https://www.youtube.com/embed/NrBJmtD0kEw"
-            title="Advanced SQL Tutorial | Stored Procedures + Use Cases — Alex The Analyst"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-            allowFullScreen
-          />
-        </div>
-      </div>
-
-      {/* ---------------------------------------------------------------- */}
-      {/* b. CONCEPT EXPLANATION                                            */}
+      {/* a. CONCEPT EXPLANATION                                            */}
       {/* ---------------------------------------------------------------- */}
       <div className="panel learn-panel">
         <span className="panel-tab">CONCEPT EXPLANATION</span>
@@ -158,6 +136,28 @@ function LearnPage() {
             </p>
           </section>
         </article>
+      </div>
+
+      {/* ---------------------------------------------------------------- */}
+      {/* b. ANIMATED VIDEO                                                 */}
+      {/* ---------------------------------------------------------------- */}
+      <div className="panel learn-panel">
+        <span className="panel-tab">VIDEO</span>
+
+        <p className="learn-video-caption">
+          "Advanced SQL Tutorial | Stored Procedures + Use Cases" by Alex The Analyst — walks through
+          creating and using stored procedures with practical examples.
+        </p>
+
+        <div className="learn-video-wrap">
+          <iframe
+            className="learn-video-iframe"
+            src="https://www.youtube.com/embed/NrBJmtD0kEw"
+            title="Advanced SQL Tutorial | Stored Procedures + Use Cases — Alex The Analyst"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+          />
+        </div>
       </div>
 
       {/* ---------------------------------------------------------------- */}
