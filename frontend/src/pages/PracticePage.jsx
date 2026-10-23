@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { API_BASE } from '../api'
 
 // AI Practice -- a standalone, general-purpose competitive-exam practice
 // tool (GATE DBMS PYQ style / campus placement SQL rounds), replacing the
@@ -63,7 +64,7 @@ function PracticePage() {
     setGenerating(true)
     setGenerateError(null)
     try {
-      const res = await fetch('/practice/generate', {
+      const res = await fetch(`${API_BASE}/practice/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ difficulty, numQuestions }),

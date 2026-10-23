@@ -7,6 +7,7 @@ import { SAMPLES } from '../samples'
 import { useTheme } from '../ThemeContext'
 import { getMermaidPalette } from '../mermaidColors'
 import { rasterizeDiagramElementToPng } from '../svgToPng'
+import { API_BASE } from '../api'
 
 // This page merges what used to be two separate routes/pages: the
 // step-through Debugger (/debugger) and the standalone SQL Console
@@ -239,7 +240,7 @@ function SqlConsolePage() {
   const [quizFeedback, setQuizFeedback] = useState(null) // last { correct, guessDisplay, actualDisplay }
 
   useEffect(() => {
-    fetch('/health')
+    fetch(`${API_BASE}/health`)
       .then((res) => {
         if (!res.ok) throw new Error(`Request failed: ${res.status}`)
         return res.json()
@@ -418,7 +419,7 @@ function SqlConsolePage() {
     let debugRes
     let debugBody
     try {
-      debugRes = await fetch('/debug', {
+      debugRes = await fetch(`${API_BASE}/debug`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, params: {}, name: selectedSampleName }),
@@ -468,7 +469,7 @@ function SqlConsolePage() {
     }
 
     try {
-      const sqlRes = await fetch('/sql/execute', {
+      const sqlRes = await fetch(`${API_BASE}/sql/execute`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sql: code }),
@@ -540,7 +541,7 @@ function SqlConsolePage() {
           ? await rasterizeDiagramElementToPng(diagramContainerRef.current)
           : null
 
-      const res = await fetch('/debug/report', {
+      const res = await fetch(`${API_BASE}/debug/report`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -994,7 +995,7 @@ function SqlConsolePage() {
 
     const previousVariables = currentStepIndex > 0 ? steps[currentStepIndex - 1].variables : null
 
-    fetch('/explain', {
+    fetch(`${API_BASE}/explain`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ step, previousVariables }),
@@ -1098,7 +1099,7 @@ function SqlConsolePage() {
     setAskMessages((prev) => [...prev, { id, question, answer: null, error: null, loading: true }])
 
     try {
-      const res = await fetch('/ask', {
+      const res = await fetch(`${API_BASE}/ask`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code, step: currentStep, question }),

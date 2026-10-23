@@ -3,6 +3,7 @@ import Editor from '@monaco-editor/react'
 import { SAMPLES } from '../samples'
 import { useTheme } from '../ThemeContext'
 import { computeDivergence, formatValue } from '../compareTraces'
+import { API_BASE } from '../api'
 
 // Side-by-Side Run Comparison -- the second of the four Innovation
 // features (see HANDOFF.md). Reuses the exact POST /debug data contract
@@ -124,7 +125,7 @@ function ComparePage() {
   async function handleDebug(setPane, pane) {
     updatePane(setPane, { running: true, error: null })
     try {
-      const res = await fetch('/debug', {
+      const res = await fetch(`${API_BASE}/debug`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ code: pane.code, params: {}, name: pane.sampleName }),

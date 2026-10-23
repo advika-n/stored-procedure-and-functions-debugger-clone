@@ -19,6 +19,7 @@
 import { useState } from 'react'
 import { SAMPLES } from './samples'
 import { TEST_CASE_EXPECTATIONS } from './testCaseExpectations'
+import { API_BASE } from './api'
 
 // Floating-point arithmetic (this language has no integer-only mode --
 // see interpreter.py) means an exact `===` would spuriously fail a
@@ -85,7 +86,7 @@ async function runOneCase(sample, expectation) {
   let res
   let body
   try {
-    res = await fetch('/debug', {
+    res = await fetch(`${API_BASE}/debug`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ code: sample.code, params: {}, name: sample.name }),

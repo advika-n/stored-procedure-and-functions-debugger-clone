@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { API_BASE } from './api'
 
 function formatTimestamp(iso) {
   try {
@@ -16,7 +17,7 @@ function History({ onReplay }) {
     // No synchronous setState here (e.g. clearing a stale error) --
     // error already starts null, and the async .then/.catch below are
     // the only state updates this makes.
-    fetch('/history')
+    fetch(`${API_BASE}/history`)
       .then((res) => {
         if (!res.ok) throw new Error(`Request failed: ${res.status}`)
         return res.json()
@@ -32,7 +33,7 @@ function History({ onReplay }) {
   async function handleReplay(id) {
     setError(null)
     try {
-      const res = await fetch(`/history/${id}`)
+      const res = await fetch(`${API_BASE}/history/${id}`)
       if (!res.ok) throw new Error(`Request failed: ${res.status}`)
       const run = await res.json()
       onReplay(run)
@@ -45,7 +46,7 @@ function History({ onReplay }) {
     event.stopPropagation() // don't also trigger the row's replay click
     setError(null)
     try {
-      const res = await fetch(`/history/${id}`, { method: 'DELETE' })
+      const res = await fetch(`${API_BASE}/history/${id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error(`Request failed: ${res.status}`)
       setRuns((prev) => prev.filter((run) => run.id !== id))
     } catch (err) {
@@ -56,7 +57,7 @@ function History({ onReplay }) {
   async function handleClearAll() {
     setError(null)
     try {
-      const res = await fetch('/history', { method: 'DELETE' })
+      const res = await fetch(`${API_BASE}/history`, { method: 'DELETE' })
       if (!res.ok) throw new Error(`Request failed: ${res.status}`)
       setRuns([])
     } catch (err) {

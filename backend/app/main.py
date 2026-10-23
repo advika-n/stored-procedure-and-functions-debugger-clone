@@ -1,3 +1,5 @@
+import os
+
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -19,13 +21,19 @@ app = FastAPI(title="Stored Procedure and Functions Debugger API")
 # when a request actually needs it (matters for test isolation, since
 # tests monkeypatch DB_PATH before making any request).
 
-# Allow the Vite dev server to call this API during local development.
+# Allowed browser origins, comma-separated in CORS_ORIGINS (e.g. the deployed
+# Vercel URL). Defaults to the Vite dev server for local development.
+CORS_ORIGINS = [
+    origin.strip().rstrip("/")
+    for origin in os.environ.get(
+        "CORS_ORIGINS", "http://localhost:5173,http://127.0.0.1:5173"
+    ).split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
-    ],
+    allow_origins=CORS_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )
